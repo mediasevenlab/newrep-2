@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang='ru'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>GitHub File Manager</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        input, textarea { width: 100%; margin: 5px 0; padding: 10px; font-size: 16px; }
+        button { padding: 10px 15px; font-size: 16px; background: #007bff; color: white; border: none; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #0056b3; }
+        .delete-btn { background: #dc3545; }
+        .delete-btn:hover { background: #a71d2a; }
+    </style>
+</head>
+<body>
+    <h2>Управление файлами в GitHub</h2>
+    <label>Имя файла:</label>
+    <input type='text' id='filename' placeholder='example.txt'>
+    <label>Содержимое файла:</label>
+    <textarea id='content' rows='5' placeholder='Введите содержимое файла'></textarea>
+    <button onclick='createFile()'>Создать/Обновить файл</button>
+    <h2>Удалить файл</h2>
+    <input type='text' id='delete_filename' placeholder='Имя файла'>
+    <button class='delete-btn' onclick='deleteFile()'>Удалить</button>
+    <script>
+        const API_URL = 'https://newrep-2.onrender.com';
+        function createFile() {
+            const filename = document.getElementById('filename').value;
+            const content = document.getElementById('content').value;
+            if (!filename || !content) {
+                alert('Заполните все поля!');
+                return;
+            }
+            fetch(`${API_URL}/create-file`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename, content })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || 'Файл успешно создан!');
+                console.log(data);
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Произошла ошибка!');
+            });
+        }
+        function deleteFile() {
+            const filename = document.getElementById('delete_filename').value;
+            if (!filename) {
+                alert('Введите имя файла!');
+                return;
+            }
+            fetch(`${API_URL}/delete-file?filename=${filename}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || 'Файл удалён!');
+                console.log(data);
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert('Ошибка при удалении файла!');
+            });
+        }
+    </script>
+</body>
+</html>
