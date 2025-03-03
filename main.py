@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import requests
 import base64
@@ -6,29 +6,44 @@ import os
 
 app = FastAPI()
 
-# 🔑 Используем токен из переменных окружения Render
+# 🔑 Используем токен из Render Environment Variables
 GITHUB_TOKEN = os.getenv("GH_TOKEN")  
 GITHUB_USERNAME = "mediasevenlab"
 REPO_NAME = "newrep-2"
 BASE_URL = f"https://api.github.com/repos/{GITHUB_USERNAME}/{REPO_NAME}/contents"
 
-# 📌 Создаём Pydantic-модель для запроса
 class FileRequest(BaseModel):
     filename: str
     content: str
 
-def upload_file(filename, content):
-    """Создаёт или обновляет файл в GitHub"""
+def get_file_sha(filename):
+    """Получает SHA файла перед удалением"""
+    file_url = f"{BASE_URL}/{filename}"
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    response = requests.get(file_url, headers=headers)
+    
+    if response.status_code == 200:
+        return response.json().get("sha")
+    return None
+
+@app.delete("/delete-file")
+async def delete_file(filename: str):
+    """Удаляет файл из репозитория"""
+    sha = get_file_sha(filename)
+    if not sha:
+        raise HTTPException(status_code=404, detail="Файл не найден")
+
     file_url = f"{BASE_URL}/{filename}"
     headers = {"Authorization": f"token {GITHUB_TOKEN}"}
     data = {
-        "message": f"Обновлён {filename} через API",
-        "content": base64.b64encode(content.encode()).decode(),
-        "sha": None
+        "message": f"Удалён {filename} через API",
+        "sha": sha
     }
-    return requests.put(file_url, headers=headers, json=data).json()
 
-@app.post("/create-file")
-async def create_file(request: FileRequest):
-    """Обрабатывает запрос и загружает файл в GitHub"""
-    return upload_file(request.filename, request.content)
+    response = requests.delete(file_url, headers=headers, json=data)
+    
+    if response.status_code == 200:
+        return {"message": f"✅ Файл {filename} успешно удалён!"}
+    else:
+        return {"error": response.json()}
+
