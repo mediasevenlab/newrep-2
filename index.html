@@ -1,1 +1,105 @@
-<h1>Привет, мир!</h1>
+<!DOCTYPE html>
+<html lang='ru'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>GitHub File Manager</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f8f9fa; text-align: center; }
+        h2 { color: #333; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        input, textarea, button { width: 100%; margin: 5px 0; padding: 10px; font-size: 16px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .delete-btn { background: #dc3545; }
+        .delete-btn:hover { background: #a71d2a; }
+        .file-list { list-style: none; padding: 0; }
+        .file-list li { display: flex; justify-content: space-between; align-items: center; background: #f1f1f1; padding: 10px; margin: 5px 0; border-radius: 5px; }
+        .file-list button { width: auto; padding: 5px 10px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <div class='container'>
+        <h2>GitHub File Manager</h2>
+
+        <label>Имя файла:</label>
+        <input type='text' id='filename' placeholder='example.txt'>
+
+        <label>Содержимое файла:</label>
+        <textarea id='content' rows='5' placeholder='Введите содержимое файла'></textarea>
+
+        <button onclick='createOrUpdateFile()'>Создать/Обновить файл</button>
+
+        <h2>Список файлов</h2>
+        <ul class='file-list' id='file-list'>Загрузка...</ul>
+
+        <h2>Удалить файл</h2>
+        <input type='text' id='delete_filename' placeholder='Имя файла'>
+        <button class='delete-btn' onclick='deleteFile()'>Удалить</button>
+    </div>
+
+    <script>
+        const API_URL = 'https://newrep-2.onrender.com';
+        const GITHUB_REPO = 'mediasevenlab/newrep-2';
+
+        async function createOrUpdateFile() {
+            const filename = document.getElementById('filename').value;
+            const content = document.getElementById('content').value;
+
+            if (!filename || !content) {
+                alert('Заполните все поля!');
+                return;
+            }
+
+            const response = await fetch(`${API_URL}/create-file`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename, content })
+            });
+
+            const data = await response.json();
+            alert(data.message || 'Файл успешно создан/обновлён!');
+            loadFileList();
+        }
+
+        async function deleteFile(filename = null) {
+            if (!filename) {
+                filename = document.getElementById('delete_filename').value;
+            }
+            if (!filename) {
+                alert('Введите имя файла!');
+                return;
+            }
+
+            const response = await fetch(`${API_URL}/delete-file?filename=${filename}`, {
+                method: 'DELETE'
+            });
+
+            const data = await response.json();
+            alert(data.message || 'Файл удалён!');
+            loadFileList();
+        }
+
+        async function loadFileList() {
+            const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents`);
+            const files = await response.json();
+
+            const fileList = document.getElementById('file-list');
+            fileList.innerHTML = '';
+
+            files.forEach(file => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `
+                    ${file.name}
+                    <button onclick="deleteFile('${file.name}')" class='delete-btn'>Удалить</button>
+                `;
+                fileList.appendChild(listItem);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', loadFileList);
+    </script>
+
+</body>
+</html>
